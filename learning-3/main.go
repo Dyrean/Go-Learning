@@ -9,6 +9,15 @@ import (
 	"go-note-json/note"
 )
 
+type saver interface {
+	Save() error
+}
+
+type outputtable interface {
+	saver
+	Display()
+}
+
 func main() {
 	title, content := getNoteData()
 
@@ -19,14 +28,28 @@ func main() {
 		return
 	}
 
-	userNote.Display()
-	err = userNote.Save()
+	err = outputData(userNote)
+
+	if err != nil {
+		return
+	}
+}
+
+func outputData(data outputtable) error {
+	data.Display()
+	return saveData(data)
+}
+
+func saveData(data saver) error {
+	err := data.Save()
 
 	if err != nil {
 		fmt.Println("Saving the note failed.")
-		return
+		return err
 	}
+
 	fmt.Println("Note saved successfully.")
+	return nil
 }
 
 func getNoteData() (*string, *string) {
