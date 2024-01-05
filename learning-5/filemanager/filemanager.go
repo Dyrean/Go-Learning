@@ -12,7 +12,15 @@ type FileManager struct {
 	OutputFilePath string
 }
 
-func New(inputFilePath, outputFilePath string) *FileManager {
+func New() *FileManager {
+	var inputFilePath string
+	var outputFilePath string
+
+	fmt.Println("Enter the input file path: ")
+	fmt.Scan(&inputFilePath)
+
+	fmt.Println("Enter the output file path: ")
+	fmt.Scan(&outputFilePath)
 	return &FileManager{
 		InputFilePath:  inputFilePath,
 		OutputFilePath: outputFilePath,

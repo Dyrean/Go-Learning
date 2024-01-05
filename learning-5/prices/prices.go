@@ -7,28 +7,30 @@ import (
 )
 
 type TaxIncludedPriceJob struct {
-	IOManager         iomanager.IOManager `json:"-"`
-	TaxRate           float64             `json:"tax_rate"`
-	InputPrices       []float64           `json:"input_prices"`
-	TaxIncludedPrices map[string]string   `json:"tax_included_prices"`
+	IOManager   iomanager.IOManager `json:"-"`
+	TaxRates    []float64           `json:"tax_rates"`
+	InputPrices []float64           `json:"input_prices"`
+	Result      map[string][]string `json:"result"`
 }
 
 func (job *TaxIncludedPriceJob) Process() error {
-	result := make(map[string]string)
+	result := make(map[string][]string)
 
-	for _, price := range job.InputPrices {
-		taxIncludedPrice := price * (1 + job.TaxRate)
-		result[fmt.Sprintf("%.2f", price)] = fmt.Sprintf("%.2f", taxIncludedPrice)
+	for _, taxRate := range job.TaxRates {
+		for _, price := range job.InputPrices {
+			taxIncludedPrice := price * (1 + taxRate)
+			result[fmt.Sprintf("%.2f", price)] = append(result[fmt.Sprintf("%.2f", price)], fmt.Sprintf("%.2f", taxIncludedPrice))
+		}
 	}
 
 	fmt.Println(result)
-	job.TaxIncludedPrices = result
+	job.Result = result
 
 	err := job.IOManager.Write(job)
 	return err
 }
 
-func NewTaxIncludedPriceJob(IO iomanager.IOManager, taxRate float64) (*TaxIncludedPriceJob, error) {
+func NewTaxIncludedPriceJob(IO iomanager.IOManager, taxRates []float64) (*TaxIncludedPriceJob, error) {
 	inputLines, err := IO.Read()
 
 	if err != nil {
@@ -46,6 +48,6 @@ func NewTaxIncludedPriceJob(IO iomanager.IOManager, taxRate float64) (*TaxInclud
 	return &TaxIncludedPriceJob{
 		IOManager:   IO,
 		InputPrices: inputPrices,
-		TaxRate:     taxRate,
+		TaxRates:    taxRates,
 	}, nil
 }
