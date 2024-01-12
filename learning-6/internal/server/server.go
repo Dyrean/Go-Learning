@@ -10,7 +10,7 @@ import (
 
 type FiberServer struct {
 	*fiber.App
-	db database.Service
+	db *database.Service
 }
 
 func New() *FiberServer {
