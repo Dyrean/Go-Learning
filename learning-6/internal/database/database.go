@@ -56,6 +56,14 @@ func (s *Service) Health() map[string]string {
 
 func createDBSchema(db *sql.DB) {
 	schema := `
+		CREATE TABLE IF NOT EXISTS users (
+			id TEXT PRIMARY KEY,
+			email TEXT NOT NULL UNIQUE,
+			password TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL
+		);
+
 		CREATE TABLE IF NOT EXISTS events (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -63,8 +71,9 @@ func createDBSchema(db *sql.DB) {
 			date_time DATETIME NOT NULL,
 			owner_id TEXT NOT NULL,
 			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL
-		)
+			updated_at DATETIME NOT NULL,
+			FOREIGN KEY (owner_id) REFERENCES users (id)
+		);
 	`
 
 	if _, err := db.Exec(schema); err != nil {

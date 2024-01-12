@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"event-booking/internal/database"
+	"event-booking/internal/utils"
 	"fmt"
 	"time"
 
@@ -28,8 +29,8 @@ func (s *FiberServer) getEvents(c *fiber.Ctx) error {
 func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 	var event database.Event
 	if err := c.BodyParser(&event); err != nil {
-		log.Warnf("could not parse request data: %s", err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse request data: %w", err).Error()})
+		log.Warnf("could not parse event save request data: %s", err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse event save request data: %w", err).Error()})
 	}
 
 	if time.Now().After(event.DateTime) {
@@ -38,8 +39,6 @@ func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 	}
 
 	event.ID = uuid.NewString()
-	event.OwnerID = uuid.NewString()
-
 	event.CreatedAt = time.Now()
 
 	err := s.db.SaveEvent(event)
@@ -81,8 +80,8 @@ func (s *FiberServer) updateEvent(c *fiber.Ctx) error {
 
 	var updatedEvent database.Event
 	if err := c.BodyParser(&updatedEvent); err != nil {
-		log.Warnf("could not parse request data: %s", err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse request data: %w", err).Error()})
+		log.Warnf("could not parse update event request data: %s", err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse update event request data: %w", err).Error()})
 	}
 
 	updatedEvent.ID = id
@@ -137,4 +136,58 @@ func (s *FiberServer) deleteEvent(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "event deleted"})
+}
+
+func (s *FiberServer) signUp(c *fiber.Ctx) error {
+	var user database.User
+	if err := c.BodyParser(&user); err != nil {
+		log.Warnf("could not parse signup request data: %s", err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse signup request data: %w", err).Error()})
+	}
+
+	hashedPassword, err := utils.HashPassword(user.Password)
+	if err != nil {
+		log.Warnf("could not hash password: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not signup user."})
+	}
+
+	user.ID = uuid.NewString()
+	user.Password = hashedPassword
+	user.CreatedAt = time.Now()
+
+	err = s.db.SaveUser(user)
+	if err != nil {
+		log.Warnf("could not signup user: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not signup user."})
+	}
+
+	user.Password = ""
+	return c.JSON(user)
+}
+
+func (s *FiberServer) login(c *fiber.Ctx) error {
+	var requestUser database.User
+	if err := c.BodyParser(&requestUser); err != nil {
+		log.Warnf("could not parse login request data: %s", err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse login request data: %w", err).Error()})
+	}
+
+	if requestUser.Email == "" || requestUser.Password == "" {
+		log.Warn("email or password is empty")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "email or password is empty"})
+	}
+
+	user, err := s.db.GetUserByEmail(requestUser.Email)
+	if err != nil {
+		log.Warnf("could not fetch user: %s", err.Error())
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "could not fetch user."})
+	}
+
+	if err := utils.CheckPasswordHash(requestUser.Password, user.Password); err != nil {
+		log.Warnf("incorrect password, error: ", err.Error())
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "incorrect password"})
+	}
+
+	user.Password = ""
+	return c.JSON(fiber.Map{"message": "login successful", "user": user})
 }
