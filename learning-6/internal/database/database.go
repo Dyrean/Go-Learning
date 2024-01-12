@@ -56,6 +56,8 @@ func (s *Service) Health() map[string]string {
 
 func createDBSchema(db *sql.DB) {
 	schema := `
+		PRAGMA foreign_keys = ON;
+
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
 			email TEXT NOT NULL UNIQUE,
@@ -75,7 +77,6 @@ func createDBSchema(db *sql.DB) {
 			FOREIGN KEY (owner_id) REFERENCES users (id)
 		);
 	`
-
 	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf(fmt.Errorf("could not create schema: %w", err).Error())
 	}

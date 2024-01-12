@@ -5,6 +5,7 @@ import (
 	"event-booking/internal/database"
 	"event-booking/internal/utils"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -40,9 +41,14 @@ func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 
 	event.ID = uuid.NewString()
 	event.CreatedAt = time.Now()
+	event.UpdatedAt = event.CreatedAt
 
 	err := s.db.SaveEvent(event)
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "foreign key constraint") || strings.Contains(strings.ToLower(err.Error()), "violates foreign key") {
+			log.Warnf("bad request could not create event: %s", err.Error())
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "could not create event."})
+		}
 		log.Warnf("could not create event: %s", err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not create event."})
 	}
@@ -87,6 +93,7 @@ func (s *FiberServer) updateEvent(c *fiber.Ctx) error {
 	updatedEvent.ID = id
 	updatedEvent.UpdatedAt = time.Now()
 	updatedEvent.CreatedAt = event.CreatedAt
+	updatedEvent.OwnerID = event.OwnerID
 
 	log.Infof("updated event: %+v", updatedEvent)
 

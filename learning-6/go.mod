@@ -6,6 +6,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/google/uuid v1.5.0
 	github.com/joho/godotenv v1.5.1
+	golang.org/x/crypto v0.18.0
 	modernc.org/sqlite v1.28.0
 )
 
@@ -22,7 +23,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78 // indirect

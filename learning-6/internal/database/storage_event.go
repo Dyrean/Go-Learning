@@ -61,7 +61,7 @@ func (s *Service) SaveEvent(event Event) error {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, event.ID, event.Name, event.Description, event.DateTime, event.OwnerID, event.CreatedAt, event.CreatedAt)
+	result, err := stmt.ExecContext(ctx, event.ID, event.Name, event.Description, event.DateTime, event.OwnerID, event.CreatedAt, event.UpdatedAt)
 	if err != nil {
 		return err
 	}
@@ -72,6 +72,7 @@ func (s *Service) SaveEvent(event Event) error {
 	}
 
 	log.Infof("save event db row affected: %v, id: %v", total, event.ID)
+	log.Infof("event %+v", event)
 	return nil
 }
 
