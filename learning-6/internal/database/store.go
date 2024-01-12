@@ -97,3 +97,32 @@ func (s *Service) GetEvent(id string) (*Event, error) {
 	log.Infof("get event id %v", event.ID)
 	return &event, nil
 }
+
+func (s *Service) UpdateEvent(event Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	query := `
+	UPDATE events
+	SET name = ?, description = ?, date_time = ?, owner_id = ?, updated_at = ?
+	WHERE id = ?`
+
+	stmt, err := s.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	result, err := stmt.ExecContext(ctx, event.Name, event.Description, event.DateTime, event.OwnerID, event.UpdatedAt, event.ID)
+	if err != nil {
+		return err
+	}
+
+	total, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("update event db row affected: %v", total)
+	return nil
+}
