@@ -116,3 +116,25 @@ func (s *FiberServer) updateEvent(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"message": "event updated"})
 }
+
+func (s *FiberServer) deleteEvent(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	_, err := s.db.GetEvent(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warnf("no event with id: %s", id)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": fmt.Sprintf("no event with id: %v", id)})
+		}
+		log.Warnf("could not fetch event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch event."})
+	}
+
+	err = s.db.DeleteEvent(id)
+	if err != nil {
+		log.Warnf("could not delete event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not delete event."})
+	}
+
+	return c.JSON(fiber.Map{"message": "event deleted"})
+}

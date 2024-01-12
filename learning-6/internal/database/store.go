@@ -71,7 +71,7 @@ func (s *Service) SaveEvent(event Event) error {
 		return err
 	}
 
-	log.Infof("save event db row affected: %v", total)
+	log.Infof("save event db row affected: %v, id: %v", total, event.ID)
 	return nil
 }
 
@@ -123,6 +123,34 @@ func (s *Service) UpdateEvent(event Event) error {
 		return err
 	}
 
-	log.Infof("update event db row affected: %v", total)
+	log.Infof("update event db row affected: %v, id: %v", total, event.ID)
+	return nil
+}
+
+func (s *Service) DeleteEvent(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	query := `
+	DELETE FROM events
+	WHERE id = ?`
+
+	stmt, err := s.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	result, err := stmt.ExecContext(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	total, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("delete event db row affected: %v, id: %v", total, id)
 	return nil
 }

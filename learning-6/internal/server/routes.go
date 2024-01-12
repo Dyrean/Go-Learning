@@ -11,4 +11,5 @@ func (s *FiberServer) RegisterEventRoutes() {
 	s.App.Post("/events", s.saveEvent)
 	s.App.Get("/events/:id", s.getEvent)
 	s.App.Put("/events/:id", s.updateEvent)
+	s.App.Delete("/events/:id", s.deleteEvent)
 }
