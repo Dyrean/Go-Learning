@@ -61,13 +61,13 @@ func createDBSchema(db *sql.DB) {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL,
 			date_time DATETIME NOT NULL,
-			owner_id TEXT NOT NULL
+			owner_id TEXT NOT NULL,
 			created_at DATETIME NOT NULL,
-			updated_at DATETIME
+			updated_at DATETIME NOT NULL
 		)
 	`
 
-	if _, err := db.Query(schema); err != nil {
+	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf(fmt.Errorf("could not create schema: %w", err).Error())
 	}
 	log.Info("schema created")

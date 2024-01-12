@@ -36,11 +36,11 @@ func (s *Service) GetEvents() ([]Event, error) {
 
 	for rows.Next() {
 		var event Event
+
 		err := rows.Scan(&event.ID, &event.Name, &event.Description, &event.DateTime, &event.OwnerID, &event.CreatedAt, &event.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
-
 		events = append(events, event)
 	}
 
@@ -52,8 +52,8 @@ func (s *Service) SaveEvent(event Event) error {
 	defer cancel()
 
 	query := `
-	INSERT INTO events(id, name, description, date_time, owner_id, created_at)
-	VALUES (?, ?, ?, ?, ?, ?)`
+	INSERT INTO events(id, name, description, date_time, owner_id, created_at, updated_at)
+	VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	stmt, err := s.db.Prepare(query)
 	if err != nil {
@@ -61,7 +61,7 @@ func (s *Service) SaveEvent(event Event) error {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, event.ID, event.Name, event.Description, event.DateTime, event.OwnerID, event.CreatedAt)
+	result, err := stmt.ExecContext(ctx, event.ID, event.Name, event.Description, event.DateTime, event.OwnerID, event.CreatedAt, event.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -71,6 +71,6 @@ func (s *Service) SaveEvent(event Event) error {
 		return err
 	}
 
-	log.Infof("events db row affected: %v", total)
+	log.Infof("save event db row affected: %v", total)
 	return nil
 }
