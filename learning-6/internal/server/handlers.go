@@ -15,9 +15,14 @@ func (s *FiberServer) healthHandler(c *fiber.Ctx) error {
 }
 
 func (s *FiberServer) getEvents(c *fiber.Ctx) error {
-	events := s.db.GetEvents()
+	events, err := s.db.GetEvents()
+	if err != nil {
+		log.Warnf("could not fetch events: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch events."})
+	}
+
 	log.Infof("events: %v", events)
-	return c.JSON(events)
+	return c.JSON(fiber.Map{"events": events})
 }
 
 func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
@@ -37,6 +42,10 @@ func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 
 	event.CreatedAt = time.Now()
 
-	s.db.SaveEvent(event)
+	err := s.db.SaveEvent(event)
+	if err != nil {
+		log.Warnf("could not create event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not create event."})
+	}
 	return c.JSON(event)
 }

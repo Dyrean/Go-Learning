@@ -35,7 +35,7 @@ func New() *Service {
 	db.SetMaxOpenConns(MaxOpenConns)
 	db.SetMaxIdleConns(MaxIdleConns)
 
-	createTables(db)
+	createDBSchema(db)
 
 	return &Service{db: db}
 }
@@ -54,19 +54,21 @@ func (s *Service) Health() map[string]string {
 	}
 }
 
-func createTables(db *sql.DB) {
-	createEventsTable := `
+func createDBSchema(db *sql.DB) {
+	schema := `
 		CREATE TABLE IF NOT EXISTS events (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL,
 			date_time DATETIME NOT NULL,
 			owner_id TEXT NOT NULL
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME
 		)
 	`
 
-	if _, err := db.Query(createEventsTable); err != nil {
-		log.Fatalf(fmt.Errorf("could not create events table: %w", err).Error())
+	if _, err := db.Query(schema); err != nil {
+		log.Fatalf(fmt.Errorf("could not create schema: %w", err).Error())
 	}
-	log.Info("events table created")
+	log.Info("schema created")
 }
