@@ -74,3 +74,26 @@ func (s *Service) SaveEvent(event Event) error {
 	log.Infof("save event db row affected: %v", total)
 	return nil
 }
+
+func (s *Service) GetEvent(id string) (*Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	query := `
+	SELECT id, name, description, date_time, owner_id, created_at, updated_at
+	FROM events
+	WHERE id = ?
+	`
+
+	row := s.db.QueryRowContext(ctx, query, id)
+
+	var event Event
+
+	err := row.Scan(&event.ID, &event.Name, &event.Description, &event.DateTime, &event.OwnerID, &event.CreatedAt, &event.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("get event id %v", event.ID)
+	return &event, nil
+}

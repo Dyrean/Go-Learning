@@ -9,4 +9,5 @@ func (s *FiberServer) RegisterRoutes() {
 func (s *FiberServer) RegisterEventRoutes() {
 	s.App.Get("/events", s.getEvents)
 	s.App.Post("/events", s.saveEvent)
+	s.App.Get("/events/:id", s.getEvent)
 }

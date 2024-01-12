@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"event-booking/internal/database"
 	"fmt"
 	"time"
@@ -21,7 +22,6 @@ func (s *FiberServer) getEvents(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch events."})
 	}
 
-	log.Infof("events: %v", events)
 	return c.JSON(fiber.Map{"events": events})
 }
 
@@ -47,5 +47,21 @@ func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 		log.Warnf("could not create event: %s", err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not create event."})
 	}
+	return c.JSON(event)
+}
+
+func (s *FiberServer) getEvent(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	event, err := s.db.GetEvent(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warnf("no event with id: %s", id)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": fmt.Sprintf("no event with id: %v", id)})
+		}
+		log.Warnf("could not fetch event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch event."})
+	}
+
 	return c.JSON(event)
 }
