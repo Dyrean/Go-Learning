@@ -87,6 +87,13 @@ func (s *FiberServer) updateEvent(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch event."})
 	}
 
+	jwtUserID := c.Locals("userID").(string)
+
+	if event.OwnerID != jwtUserID {
+		log.Warnf("user with id: %s is not the owner of the event to update", jwtUserID)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Not authorized to update the event"})
+	}
+
 	var updatedEvent database.Event
 	if err := c.BodyParser(&updatedEvent); err != nil {
 		log.Warnf("could not parse update event request data: %s", err.Error())
@@ -129,7 +136,7 @@ func (s *FiberServer) updateEvent(c *fiber.Ctx) error {
 func (s *FiberServer) deleteEvent(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	_, err := s.db.GetEvent(id)
+	event, err := s.db.GetEvent(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Warnf("no event with id: %s", id)
@@ -137,6 +144,13 @@ func (s *FiberServer) deleteEvent(c *fiber.Ctx) error {
 		}
 		log.Warnf("could not fetch event: %s", err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch event."})
+	}
+
+	jwtUserID := c.Locals("userID").(string)
+
+	if event.OwnerID != jwtUserID {
+		log.Warnf("user with id: %s is not the owner of the event to delete", jwtUserID)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Not authorized to delete the event"})
 	}
 
 	err = s.db.DeleteEvent(id)
