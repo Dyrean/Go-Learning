@@ -168,8 +168,7 @@ func (s *FiberServer) signUp(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not signup user."})
 	}
 
-	user.Password = ""
-	return c.JSON(fiber.Map{"message": "signup successful", "user": user})
+	return c.JSON(fiber.Map{"message": "signup successful"})
 }
 
 func (s *FiberServer) login(c *fiber.Ctx) error {
@@ -184,11 +183,17 @@ func (s *FiberServer) login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "email or password is empty"})
 	}
 
-	err := s.db.ValidateCredentials(user)
+	err := s.db.ValidateCredentials(&user)
 	if err != nil {
 		log.Warnf("Validate error: %s", err.Error())
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 	}
 
-	return c.JSON(fiber.Map{"message": "login successful"})
+	token, err := utils.GenerateToken(user.Email, user.ID)
+	if err != nil {
+		log.Warnf("generate token error: %s", err.Error())
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "credentials invalid"})
+	}
+
+	return c.JSON(fiber.Map{"message": "login successful", "token": token})
 }

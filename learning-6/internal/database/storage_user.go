@@ -45,15 +45,15 @@ func (s *Service) SaveUser(user User) error {
 	return nil
 }
 
-func (s *Service) ValidateCredentials(user User) error {
+func (s *Service) ValidateCredentials(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	query := `SELECT password FROM users WHERE email = ?`
+	query := `SELECT id, password FROM users WHERE email = ?`
 	row := s.db.QueryRowContext(ctx, query, user.Email)
 
 	var password string
-	err := row.Scan(&password)
+	err := row.Scan(&user.ID, &password)
 	if err != nil {
 		return errors.New("credentials invalid")
 	}
