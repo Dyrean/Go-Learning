@@ -74,11 +74,20 @@ func createDBSchema(db *sql.DB) {
 			owner_id TEXT NOT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
-			FOREIGN KEY (owner_id) REFERENCES users (id)
+			FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE
+		);
+
+		CREATE TABLE IF NOT EXISTS registrations (
+			id TEXT PRIMARY KEY,
+			event_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+			FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+			UNIQUE (event_id, user_id)
 		);
 	`
 	if _, err := db.Exec(schema); err != nil {
 		log.Fatalf(fmt.Errorf("could not create schema: %w", err).Error())
 	}
-	log.Info("schema created")
 }

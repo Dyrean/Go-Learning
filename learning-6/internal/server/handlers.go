@@ -105,8 +105,6 @@ func (s *FiberServer) updateEvent(c *fiber.Ctx) error {
 	updatedEvent.CreatedAt = event.CreatedAt
 	updatedEvent.OwnerID = event.OwnerID
 
-	log.Infof("updated event: %+v", updatedEvent)
-
 	if updatedEvent.DateTime.IsZero() {
 		updatedEvent.DateTime = event.DateTime
 	}
@@ -213,4 +211,86 @@ func (s *FiberServer) login(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "login successful", "token": token})
+}
+
+func (s *FiberServer) registerToEvent(c *fiber.Ctx) error {
+	eventID := c.Params("id")
+	userID := c.Locals("userID").(string)
+
+	_, err := s.db.GetEvent(eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warnf("no event with id: %s", eventID)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": fmt.Sprintf("no event with id: %v", eventID)})
+		}
+		log.Warnf("could not fetch event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch event."})
+	}
+
+	var registeration database.Registeration
+	registeration.ID = uuid.NewString()
+	registeration.EventID = eventID
+	registeration.UserID = userID
+	registeration.CreatedAt = time.Now()
+
+	err = s.db.CreateRegistration(&registeration)
+	if err != nil {
+		log.Warnf("could not register to event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not register to event."})
+	}
+
+	return c.JSON(fiber.Map{"message": "event registered", "register_id": registeration.ID})
+}
+
+func (s *FiberServer) cancelRegisteration(c *fiber.Ctx) error {
+	eventID := c.Params("id")
+	userID := c.Locals("userID").(string)
+
+	registeration, err := s.db.GetRegistration(userID, eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warnf("no registeration with eventID: %s and userID %s", eventID, userID)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "no registeration"})
+		}
+		log.Warnf("could not cancel registeration: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not cancel registeration."})
+	}
+	err = s.db.CancelRegisteration(registeration.ID)
+	if err != nil {
+		log.Warnf("could not cancel registeration: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not cancel registeration."})
+	}
+
+	return c.JSON(fiber.Map{"message": "registeration canceled"})
+}
+
+func (s *FiberServer) getRegistrations(c *fiber.Ctx) error {
+	eventID := c.Params("id")
+	userID := c.Locals("userID").(string)
+
+	event, err := s.db.GetEvent(eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warnf("no event with id: %s", eventID)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": fmt.Sprintf("no event with id: %v", eventID)})
+		}
+		log.Warnf("could not fetch event: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch event."})
+	}
+	if event.OwnerID != userID {
+		log.Warnf("user with id: %s is not the owner of the event to get registrations", userID)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Not authorized to get registrations"})
+	}
+
+	registrations, err := s.db.GetRegistrations(eventID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Warnf("no registrations with eventID: %s", eventID)
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"message": "no registrations"})
+		}
+		log.Warnf("could not fetch registrations: %s", err.Error())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not fetch registrations."})
+	}
+
+	return c.JSON(fiber.Map{"registrations": registrations})
 }

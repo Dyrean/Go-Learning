@@ -20,4 +20,7 @@ func (s *FiberServer) RegisterEventRoutes() {
 	auth.Post("/events", s.saveEvent)
 	auth.Put("/events/:id", s.updateEvent)
 	auth.Delete("/events/:id", s.deleteEvent)
+	auth.Post("/events/:id/register", s.registerToEvent)
+	auth.Delete("/events/:id/register", s.cancelRegisteration)
+	auth.Get("/events/:id/registers", s.getRegistrations)
 }

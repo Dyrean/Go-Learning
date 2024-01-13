@@ -17,7 +17,7 @@ type Event struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func (s *Service) GetEvents() ([]Event, error) {
+func (s *Service) GetEvents() (*[]Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -44,7 +44,7 @@ func (s *Service) GetEvents() ([]Event, error) {
 		events = append(events, event)
 	}
 
-	return events, nil
+	return &events, nil
 }
 
 func (s *Service) SaveEvent(event Event) error {
@@ -61,18 +61,12 @@ func (s *Service) SaveEvent(event Event) error {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, event.ID, event.Name, event.Description, event.DateTime, event.OwnerID, event.CreatedAt, event.UpdatedAt)
+	_, err = stmt.ExecContext(ctx, event.ID, event.Name, event.Description, event.DateTime, event.OwnerID, event.CreatedAt, event.UpdatedAt)
 	if err != nil {
 		return err
 	}
 
-	total, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Infof("save event db row affected: %v, id: %v", total, event.ID)
-	log.Infof("event %+v", event)
+	log.Infof("event added id: &v", event.ID)
 	return nil
 }
 
@@ -114,17 +108,12 @@ func (s *Service) UpdateEvent(event Event) error {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, event.Name, event.Description, event.DateTime, event.OwnerID, event.UpdatedAt, event.ID)
+	_, err = stmt.ExecContext(ctx, event.Name, event.Description, event.DateTime, event.OwnerID, event.UpdatedAt, event.ID)
 	if err != nil {
 		return err
 	}
 
-	total, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Infof("update event db row affected: %v, id: %v", total, event.ID)
+	log.Infof("update event id: %v", event.ID)
 	return nil
 }
 
@@ -142,16 +131,42 @@ func (s *Service) DeleteEvent(id string) error {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, id)
+	_, err = stmt.ExecContext(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	total, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Infof("delete event db row affected: %v, id: %v", total, id)
+	log.Infof("delete event db id: %v", id)
 	return nil
+}
+
+func (s *Service) GetRegistrations(eventID string) (*[]Registeration, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	query := `
+	SELECT id, event_id, user_id, created_at
+	FROM registrations
+	ORDER BY created_at DESC;
+	`
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var registerations []Registeration
+
+	for rows.Next() {
+		var registeration Registeration
+
+		err := rows.Scan(&registeration.ID, &registeration.EventID, &registeration.UserID, &registeration.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		registerations = append(registerations, registeration)
+	}
+
+	return &registerations, nil
 }

@@ -31,17 +31,12 @@ func (s *Service) SaveUser(user User) error {
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, user.ID, user.Email, user.Password, user.CreatedAt, user.CreatedAt)
+	_, err = stmt.ExecContext(ctx, user.ID, user.Email, user.Password, user.CreatedAt, user.CreatedAt)
 	if err != nil {
 		return err
 	}
 
-	total, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Infof("signup user db row affected: %v, email: %v", total, user.Email)
+	log.Infof("signup user db email: %v", user.Email)
 	return nil
 }
 
