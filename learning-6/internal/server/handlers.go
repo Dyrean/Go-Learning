@@ -169,32 +169,26 @@ func (s *FiberServer) signUp(c *fiber.Ctx) error {
 	}
 
 	user.Password = ""
-	return c.JSON(user)
+	return c.JSON(fiber.Map{"message": "signup successful", "user": user})
 }
 
 func (s *FiberServer) login(c *fiber.Ctx) error {
-	var requestUser database.User
-	if err := c.BodyParser(&requestUser); err != nil {
+	var user database.User
+	if err := c.BodyParser(&user); err != nil {
 		log.Warnf("could not parse login request data: %s", err.Error())
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": fmt.Errorf("could not parse login request data: %w", err).Error()})
 	}
 
-	if requestUser.Email == "" || requestUser.Password == "" {
+	if user.Email == "" || user.Password == "" {
 		log.Warn("email or password is empty")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "email or password is empty"})
 	}
 
-	user, err := s.db.GetUserByEmail(requestUser.Email)
+	err := s.db.ValidateCredentials(user)
 	if err != nil {
-		log.Warnf("could not fetch user: %s", err.Error())
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "could not fetch user."})
+		log.Warnf("Validate error: %s", err.Error())
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 	}
 
-	if err := utils.CheckPasswordHash(requestUser.Password, user.Password); err != nil {
-		log.Warnf("incorrect password, error: ", err.Error())
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "incorrect password"})
-	}
-
-	user.Password = ""
-	return c.JSON(fiber.Map{"message": "login successful", "user": user})
+	return c.JSON(fiber.Map{"message": "login successful"})
 }

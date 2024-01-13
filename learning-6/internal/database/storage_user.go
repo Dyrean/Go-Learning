@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"errors"
+	"event-booking/internal/utils"
 	"time"
 
 	"github.com/gofiber/fiber/v2/log"
@@ -43,19 +45,24 @@ func (s *Service) SaveUser(user User) error {
 	return nil
 }
 
-func (s *Service) GetUserByEmail(email string) (*User, error) {
+func (s *Service) ValidateCredentials(user User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	query := `SELECT id, email, password, created_at, updated_at FROM users WHERE email = ?`
+	query := `SELECT password FROM users WHERE email = ?`
+	row := s.db.QueryRowContext(ctx, query, user.Email)
 
-	row := s.db.QueryRowContext(ctx, query, email)
-
-	var user User
-	err := row.Scan(&user.ID, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)
+	var password string
+	err := row.Scan(&password)
 	if err != nil {
-		return nil, err
+		return errors.New("credentials invalid")
 	}
 
-	return &user, nil
+	isPasswordValid := utils.CheckPasswordHash(user.Password, password)
+
+	if !isPasswordValid {
+		return errors.New("credentials invalid")
+	}
+
+	return nil
 }
