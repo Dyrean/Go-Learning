@@ -12,7 +12,7 @@ type Event struct {
 	Name        string    `binding:"required" json:"name"`
 	Description string    `binding:"required" json:"description"`
 	DateTime    time.Time `binding:"required" json:"date_time"`
-	OwnerID     string    `binding:"required" json:"owner_id"`
+	OwnerID     string    `json:"owner_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

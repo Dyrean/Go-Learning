@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 var (
-	secretKey = os.Getenv("JWT_SECRET_KEY")
+	secretKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 )
 
 func GenerateToken(email, userID string) (string, error) {
@@ -19,5 +20,32 @@ func GenerateToken(email, userID string) (string, error) {
 		"exp":    time.Now().Add(time.Hour * 4).Unix(),
 	})
 
-	return token.SignedString([]byte(secretKey))
+	return token.SignedString(secretKey)
+}
+
+func ValidateToken(token string) (string, error) {
+	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+
+		return secretKey, nil
+	})
+
+	if err != nil {
+		return "", errors.New("could not parse token")
+	}
+
+	if !parsedToken.Valid {
+		return "", errors.New("invalid token")
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("invalid token claims")
+	}
+
+	userID := claims["userID"].(string)
+
+	return userID, nil
 }

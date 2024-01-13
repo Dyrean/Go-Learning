@@ -28,6 +28,21 @@ func (s *FiberServer) getEvents(c *fiber.Ctx) error {
 }
 
 func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
+	token := c.Get("Authorization")
+
+	if token == "" {
+		log.Warn("no token provided")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Not authorized"})
+	}
+
+	token = token[len("Bearer "):]
+
+	jwtUserID, err := utils.ValidateToken(token)
+	if err != nil {
+		log.Warnf("could not validate token: %s", err.Error())
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Not authorized"})
+	}
+
 	var event database.Event
 	if err := c.BodyParser(&event); err != nil {
 		log.Warnf("could not parse event save request data: %s", err.Error())
@@ -42,8 +57,9 @@ func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 	event.ID = uuid.NewString()
 	event.CreatedAt = time.Now()
 	event.UpdatedAt = event.CreatedAt
+	event.OwnerID = jwtUserID
 
-	err := s.db.SaveEvent(event)
+	err = s.db.SaveEvent(event)
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "foreign key constraint") || strings.Contains(strings.ToLower(err.Error()), "violates foreign key") {
 			log.Warnf("bad request could not create event: %s", err.Error())
@@ -52,7 +68,7 @@ func (s *FiberServer) saveEvent(c *fiber.Ctx) error {
 		log.Warnf("could not create event: %s", err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "could not create event."})
 	}
-	return c.JSON(event)
+	return c.Status(fiber.StatusCreated).JSON(event)
 }
 
 func (s *FiberServer) getEvent(c *fiber.Ctx) error {
